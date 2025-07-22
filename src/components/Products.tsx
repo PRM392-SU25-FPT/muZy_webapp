@@ -1,14 +1,21 @@
-"use client"
-
-import type React from "react"
-import { useState, useEffect } from "react"
-import type { ProductDto, ProductFilterRequest, CategoryDto } from "../types/dto"
-import ProductModal from "./ProductModal"
-import CategoryModal from "./CategoryModal"
-import Pagination from "./Pagination"
-import { getImageDisplaySrc } from "../utils/imageUtils"
-import { useProducts } from "../hooks/useProducts"
-import { useCategories } from "../hooks/useCategories"
+"use client";
+import type React from "react";
+import { useState, useEffect, useCallback } from "react";
+import { debounce } from "lodash";
+import {
+  type ProductFilterRequest,
+  type ProductDto,
+  type CategoryDto,
+  type ProductCreateRequest,
+  type ProductUpdateRequest,
+  type CategoryCreateRequest,
+} from "../types/dto";
+import ProductModal from "./ProductModal";
+import CategoryModal from "./CategoryModal";
+import Pagination from "./Pagination";
+import { useProducts } from "../hooks/useProducts";
+import { useCategories } from "../hooks/useCategories";
+import { getImageDisplaySrc } from "../utils/imageUtils";
 
 const Products: React.FC = () => {
   const {
@@ -21,104 +28,176 @@ const Products: React.FC = () => {
     createProduct,
     updateProduct,
     deleteProduct,
-  } = useProducts()
+  } = useProducts();
 
-  const { categories, fetchCategories, createCategory, error: categoriesError } = useCategories()
+  const {
+    categories,
+    fetchCategories,
+    createCategory,
+    error: categoriesError,
+  } = useCategories();
 
-  // Modal states remain the same
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false)
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<ProductDto | undefined>()
-  const [editingCategory, setEditingCategory] = useState<CategoryDto | undefined>()
-  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<
+    ProductDto | undefined
+  >();
+  const [editingCategory, setEditingCategory] = useState<
+    CategoryDto | undefined
+  >();
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
 
-  // Filter states
   const [filters, setFilters] = useState<ProductFilterRequest>({
     sortBy: "productName",
     sortOrder: "asc",
     pageNumber: 1,
     pageSize: 10,
-  })
+  });
 
-  const handleFilterChange = (newFilters: Partial<ProductFilterRequest>) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      ...newFilters,
-    }))
-  }
+  const handleFilterChange = useCallback(
+    (newFilters: Partial<ProductFilterRequest>) => {
+      setFilters((prevFilters) => ({
+        ...prevFilters,
+        ...newFilters,
+      }));
+    },
+    []
+  );
 
-  const handlePageChange = (newPageNumber: number) => {
+  const handlePageChange = useCallback((newPageNumber: number) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
       pageNumber: newPageNumber,
-    }))
-  }
+    }));
+  }, []);
+
+  const debouncedFetchProducts = useCallback(
+    debounce((filters: ProductFilterRequest) => {
+      if (isFetching) return;
+      setIsFetching(true);
+      fetchProducts(filters)
+        .catch((error) => {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Có lỗi xảy ra khi tải dữ liệu";
+          setFetchError(errorMessage);
+        })
+        .finally(() => setIsFetching(false));
+    }, 1000),
+    [fetchProducts, isFetching]
+  );
+
+  const loadData = useCallback(async () => {
+    if (isFetching) return;
+    setIsFetching(true);
+    try {
+      setFetchError(null);
+      await Promise.all([
+        debouncedFetchProducts(filters),
+        fetchCategories().catch((error) => {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Có lỗi xảy ra khi tải danh mục";
+          setFetchError(errorMessage);
+        }),
+      ]);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải dữ liệu";
+      setFetchError(errorMessage);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [filters, debouncedFetchProducts, fetchCategories, isFetching]);
 
   useEffect(() => {
-    const loadData = async () => {
+    loadData();
+  }, [loadData]);
+
+  const handleRetry = useCallback(() => {
+    setFetchError(null);
+    loadData();
+  }, [loadData]);
+
+  const handleCreateProduct = useCallback(
+    async (productData: ProductCreateRequest) => {
       try {
-        setFetchError(null)
-        await Promise.all([fetchProducts(filters), fetchCategories()])
+        await createProduct(productData);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi tải dữ liệu"
-        setFetchError(errorMessage)
-        console.error("Error loading data:", error)
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Có lỗi xảy ra khi tạo sản phẩm";
+        alert(`Lỗi: ${errorMessage}`);
+        console.error("Error creating product:", error);
       }
-    }
+    },
+    [createProduct]
+  );
 
-    loadData()
-  }, [filters, fetchProducts, fetchCategories])
-
-  const handleCreateProduct = async (productData: any) => {
-    try {
-      await createProduct(productData)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi tạo sản phẩm"
-      alert(`Lỗi: ${errorMessage}`)
-      console.error("Error creating product:", error)
-    }
-  }
-
-  const handleUpdateProduct = async (productData: any) => {
-    try {
-      if (editingProduct) {
-        await updateProduct(editingProduct.productID, productData)
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật sản phẩm"
-      alert(`Lỗi: ${errorMessage}`)
-      console.error("Error updating product:", error)
-    }
-  }
-
-  const handleDeleteProduct = async (productId: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+  const handleUpdateProduct = useCallback(
+    async (productData: ProductUpdateRequest) => {
       try {
-        await deleteProduct(productId)
+        if (editingProduct) {
+          await updateProduct(editingProduct.productID, productData);
+        }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi xóa sản phẩm"
-        alert(`Lỗi: ${errorMessage}`)
-        console.error("Error deleting product:", error)
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Có lỗi xảy ra khi cập nhật sản phẩm";
+        alert(`Lỗi: ${errorMessage}`);
+        console.error("Error updating product:", error);
       }
-    }
-  }
+    },
+    [updateProduct, editingProduct]
+  );
 
-  const handleCreateCategory = async (categoryData: any) => {
-    try {
-      await createCategory(categoryData)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi tạo danh mục"
-      alert(`Lỗi: ${errorMessage}`)
-      console.error("Error creating category:", error)
-    }
-  }
+  const handleDeleteProduct = useCallback(
+    async (productId: number) => {
+      if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+        try {
+          await deleteProduct(productId);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Có lỗi xảy ra khi xóa sản phẩm";
+          alert(`Lỗi: ${errorMessage}`);
+          console.error("Error deleting product:", error);
+        }
+      }
+    },
+    [deleteProduct]
+  );
+
+  const handleCreateCategory = useCallback(
+    async (categoryData: CategoryCreateRequest) => {
+      try {
+        await createCategory(categoryData);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Có lỗi xảy ra khi tạo danh mục";
+        alert(`Lỗi: ${errorMessage}`);
+        console.error("Error creating category:", error);
+      }
+    },
+    [createCategory]
+  );
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(price)
-  }
+    }).format(price);
+  };
 
   return (
     <div className="page-container">
@@ -131,15 +210,10 @@ const Products: React.FC = () => {
         <div className="error-banner">
           <div className="error-content">
             <span className="error-icon">⚠️</span>
-            <span className="error-message">{fetchError || error || categoriesError}</span>
-            <button
-              className="error-retry-btn"
-              onClick={() => {
-                setFetchError(null)
-                fetchProducts(filters)
-                fetchCategories()
-              }}
-            >
+            <span className="error-message">
+              {fetchError || error || categoriesError}
+            </span>
+            <button className="error-retry-btn" onClick={handleRetry}>
               Thử lại
             </button>
           </div>
@@ -150,8 +224,8 @@ const Products: React.FC = () => {
         <button
           className="btn-primary"
           onClick={() => {
-            setEditingProduct(undefined)
-            setIsProductModalOpen(true)
+            setEditingProduct(undefined);
+            setIsProductModalOpen(true);
           }}
         >
           <span>➕</span>
@@ -160,8 +234,8 @@ const Products: React.FC = () => {
         <button
           className="btn-secondary"
           onClick={() => {
-            setEditingCategory(undefined)
-            setIsCategoryModalOpen(true)
+            setEditingCategory(undefined);
+            setIsCategoryModalOpen(true);
           }}
         >
           <span>📁</span>
@@ -169,7 +243,6 @@ const Products: React.FC = () => {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="filters-section">
         <div className="filters-row">
           <div className="search-box">
@@ -177,7 +250,9 @@ const Products: React.FC = () => {
               type="text"
               placeholder="Tìm kiếm sản phẩm..."
               value={filters.searchTerm || ""}
-              onChange={(e) => handleFilterChange({ searchTerm: e.target.value })}
+              onChange={(e) =>
+                handleFilterChange({ searchTerm: e.target.value })
+              }
               className="search-input"
             />
             <span className="search-icon">🔍</span>
@@ -185,7 +260,9 @@ const Products: React.FC = () => {
 
           <select
             value={filters.category || ""}
-            onChange={(e) => handleFilterChange({ category: e.target.value || undefined })}
+            onChange={(e) =>
+              handleFilterChange({ category: e.target.value || undefined })
+            }
             className="filter-select"
           >
             <option value="">Tất cả danh mục</option>
@@ -199,8 +276,11 @@ const Products: React.FC = () => {
           <select
             value={`${filters.sortBy}-${filters.sortOrder}`}
             onChange={(e) => {
-              const [sortBy, sortOrder] = e.target.value.split("-")
-              handleFilterChange({ sortBy, sortOrder: sortOrder as "asc" | "desc" })
+              const [sortBy, sortOrder] = e.target.value.split("-");
+              handleFilterChange({
+                sortBy,
+                sortOrder: sortOrder as "asc" | "desc",
+              });
             }}
             className="filter-select"
           >
@@ -218,7 +298,11 @@ const Products: React.FC = () => {
               placeholder="Giá từ"
               value={filters.minPrice || ""}
               onChange={(e) =>
-                handleFilterChange({ minPrice: e.target.value ? Number.parseFloat(e.target.value) : undefined })
+                handleFilterChange({
+                  minPrice: e.target.value
+                    ? Number.parseFloat(e.target.value)
+                    : undefined,
+                })
               }
               className="price-input"
             />
@@ -228,7 +312,11 @@ const Products: React.FC = () => {
               placeholder="Giá đến"
               value={filters.maxPrice || ""}
               onChange={(e) =>
-                handleFilterChange({ maxPrice: e.target.value ? Number.parseFloat(e.target.value) : undefined })
+                handleFilterChange({
+                  maxPrice: e.target.value
+                    ? Number.parseFloat(e.target.value)
+                    : undefined,
+                })
               }
               className="price-input"
             />
@@ -236,9 +324,8 @@ const Products: React.FC = () => {
         </div>
       </div>
 
-      {/* Products Table */}
       <div className="table-container">
-        {loading ? (
+        {loading || isFetching ? (
           <div className="loading-state">
             <div className="loading-spinner">⏳</div>
             <p>Đang tải dữ liệu...</p>
@@ -261,7 +348,12 @@ const Products: React.FC = () => {
                   <td>
                     <div className="product-image">
                       <img
-                        src={getImageDisplaySrc(product.imageBase64, product.imageName) || "/placeholder.svg"}
+                        src={
+                          getImageDisplaySrc(
+                            product.imageBase64,
+                            product.imageName
+                          ) || "/placeholder.svg"
+                        }
                         alt={product.productName}
                         className="table-image"
                       />
@@ -269,14 +361,20 @@ const Products: React.FC = () => {
                   </td>
                   <td>
                     <div className="product-info">
-                      <span className="product-name">{product.productName}</span>
+                      <span className="product-name">
+                        {product.productName}
+                      </span>
                     </div>
                   </td>
                   <td>
-                    <span className="category-badge">{product.categoryName}</span>
+                    <span className="category-badge">
+                      {product.categoryName}
+                    </span>
                   </td>
                   <td>
-                    <span className="description-text">{product.briefDescription}</span>
+                    <span className="description-text">
+                      {product.briefDescription}
+                    </span>
                   </td>
                   <td className="price">{formatPrice(product.price)}</td>
                   <td>
@@ -285,13 +383,17 @@ const Products: React.FC = () => {
                         className="btn-edit"
                         title="Chỉnh sửa"
                         onClick={() => {
-                          setEditingProduct(product)
-                          setIsProductModalOpen(true)
+                          setEditingProduct(product);
+                          setIsProductModalOpen(true);
                         }}
                       >
                         ✏️
                       </button>
-                      <button className="btn-delete" title="Xóa" onClick={() => handleDeleteProduct(product.productID)}>
+                      <button
+                        className="btn-delete"
+                        title="Xóa"
+                        onClick={() => handleDeleteProduct(product.productID)}
+                      >
                         🗑️
                       </button>
                     </div>
@@ -302,17 +404,19 @@ const Products: React.FC = () => {
           </table>
         )}
 
-        {!loading && products.length === 0 && (
+        {!loading && !isFetching && products.length === 0 && (
           <div className="no-results">
             <p>Không tìm thấy sản phẩm nào</p>
           </div>
         )}
       </div>
 
-      {/* Pagination */}
-      <Pagination currentPage={filters.pageNumber} totalPages={totalPages} onPageChange={handlePageChange} />
+      <Pagination
+        currentPage={filters.pageNumber}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
-      {/* Categories Section */}
       <div className="categories-section">
         <h2>Danh mục sản phẩm</h2>
         <div className="categories-grid">
@@ -326,8 +430,8 @@ const Products: React.FC = () => {
                 <button
                   className="btn-edit"
                   onClick={() => {
-                    setEditingCategory(category)
-                    setIsCategoryModalOpen(true)
+                    setEditingCategory(category);
+                    setIsCategoryModalOpen(true);
                   }}
                 >
                   ✏️
@@ -338,7 +442,6 @@ const Products: React.FC = () => {
         </div>
       </div>
 
-      {/* Modals */}
       <ProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
@@ -354,7 +457,7 @@ const Products: React.FC = () => {
         category={editingCategory}
       />
     </div>
-  )
-}
+  );
+};
 
-export default Products
+export default Products;
