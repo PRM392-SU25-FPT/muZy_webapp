@@ -15,7 +15,7 @@ import CategoryModal from "./CategoryModal";
 import Pagination from "./Pagination";
 import { useProducts } from "../hooks/useProducts";
 import { useCategories } from "../hooks/useCategories";
-import { getImageDisplaySrc } from "../utils/imageUtils";
+import { getImageDisplaySrc } from "../utils/ImageUtils";
 
 const Products: React.FC = () => {
   const {
