@@ -1,7 +1,7 @@
 on:
     push:
       branches:
-        - deploy/develop
+        - main
     workflow_dispatch:
 
 jobs:
@@ -31,8 +31,8 @@ jobs:
             with:
               context: .
               push: true
-              tags: huyhoang204205/tuitionfeemanagement:latest
-              cache-from: type=registry,ref=huyhoang204205/tuitionfeemanagement:latest
+              tags: huyhoang204205/muzy_frontend:latest
+              cache-from: type=registry,ref=huyhoang204205/muzy_frontend:latest
               cache-to: type=inline
 
     deploy:
@@ -56,7 +56,7 @@ jobs:
             run: |
               ssh huyhoang204205@115.73.218.193 << EOF
                 set -e
-                cd /home/huyhoang204205/Documents/tuitionfeemanagement
-                echo "${{ secrets.SSH_PASS }}" | sudo -S docker compose pull tuition-fee-frontend
+                cd /home/huyhoang204205/Documents/muzy
+                echo "${{ secrets.SSH_PASS }}" | sudo -S docker compose pull muzy_frontend
                 echo "${{ secrets.SSH_PASS }}" | sudo -S docker compose up -d
               EOF
