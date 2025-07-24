@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useRef, useState, useCallback } from "react"
-import { validateImageFile, compressImage } from "../utils/imageUtils"
+import { validateImageFile, compressImage } from "../utils/ImageUtils"
 
 interface ImageUploadProps {
   value?: string
