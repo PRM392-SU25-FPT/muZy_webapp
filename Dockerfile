@@ -18,6 +18,4 @@ RUN npm run build
 
 # Expose the port the app runs on
 EXPOSE 2617
-
-# Command to start the application
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["serve", "-s", "dist", "-l", "2617"]
