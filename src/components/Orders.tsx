@@ -1,16 +1,18 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import type { OrderResponseDTO } from "../types/dto"
-import { useOrders } from "../hooks/useOrders"
+import type React from "react";
+import { useState, useEffect } from "react";
+import type { OrderResponseDTO } from "../types/dto";
+import { useOrders } from "../hooks/useOrders";
 
 const Orders: React.FC = () => {
-  const { orders, totalCount, loading, error, fetchOrders, updateOrderStatus } = useOrders()
+  const { orders, loading, fetchOrders, updateOrderStatus } = useOrders();
 
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [selectedOrder, setSelectedOrder] = useState<OrderResponseDTO | null>(null)
-  const [showOrderDetails, setShowOrderDetails] = useState(false)
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponseDTO | null>(
+    null
+  );
+  const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Mock data - replace with actual API calls
   // const mockOrders: OrderResponseDTO[] = [
@@ -97,8 +99,8 @@ const Orders: React.FC = () => {
   // ]
 
   useEffect(() => {
-    fetchOrders({ status: filterStatus })
-  }, [filterStatus, fetchOrders])
+    fetchOrders({ status: filterStatus });
+  }, [filterStatus, fetchOrders]);
 
   // const loadOrders = async () => {
   //   setLoading(true)
@@ -120,9 +122,9 @@ const Orders: React.FC = () => {
       shipped: "Đang giao",
       delivered: "Đã giao",
       cancelled: "Đã hủy",
-    }
-    return statusMap[status] || status
-  }
+    };
+    return statusMap[status] || status;
+  };
 
   const getStatusStats = () => {
     const stats = {
@@ -130,29 +132,29 @@ const Orders: React.FC = () => {
       confirmed: orders.filter((o) => o.status === "confirmed").length,
       shipped: orders.filter((o) => o.status === "shipped").length,
       delivered: orders.filter((o) => o.status === "delivered").length,
-    }
-    return stats
-  }
+    };
+    return stats;
+  };
 
   const handleStatusUpdate = async (orderId: number, newStatus: string) => {
     try {
-      await updateOrderStatus(orderId, newStatus)
+      await updateOrderStatus(orderId, newStatus);
     } catch (error) {
-      console.error("Error updating order status:", error)
+      console.error("Error updating order status:", error);
     }
-  }
+  };
 
   const handleViewOrderDetails = (order: OrderResponseDTO) => {
-    setSelectedOrder(order)
-    setShowOrderDetails(true)
-  }
+    setSelectedOrder(order);
+    setShowOrderDetails(true);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(price)
-  }
+    }).format(price);
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("vi-VN", {
@@ -161,11 +163,14 @@ const Orders: React.FC = () => {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(new Date(date))
-  }
+    }).format(new Date(date));
+  };
 
-  const filteredOrders = filterStatus === "all" ? orders : orders.filter((order) => order.status === filterStatus)
-  const stats = getStatusStats()
+  const filteredOrders =
+    filterStatus === "all"
+      ? orders
+      : orders.filter((order) => order.status === filterStatus);
+  const stats = getStatusStats();
 
   return (
     <div className="page-container">
@@ -206,7 +211,11 @@ const Orders: React.FC = () => {
       </div>
 
       <div className="filter-section">
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="status-filter">
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="status-filter"
+        >
           <option value="all">Tất cả đơn hàng</option>
           <option value="pending">Chờ xử lý</option>
           <option value="confirmed">Đã xác nhận</option>
@@ -243,7 +252,9 @@ const Orders: React.FC = () => {
                   <td>
                     <select
                       value={order.status}
-                      onChange={(e) => handleStatusUpdate(order.orderId, e.target.value)}
+                      onChange={(e) =>
+                        handleStatusUpdate(order.orderId, e.target.value)
+                      }
                       className={`status-select status-${order.status}`}
                     >
                       <option value="pending">Chờ xử lý</option>
@@ -255,7 +266,11 @@ const Orders: React.FC = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button className="btn-view" title="Xem chi tiết" onClick={() => handleViewOrderDetails(order)}>
+                      <button
+                        className="btn-view"
+                        title="Xem chi tiết"
+                        onClick={() => handleViewOrderDetails(order)}
+                      >
                         👁️
                       </button>
                     </div>
@@ -275,11 +290,20 @@ const Orders: React.FC = () => {
 
       {/* Order Details Modal */}
       {showOrderDetails && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setShowOrderDetails(false)}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowOrderDetails(false)}
+        >
+          <div
+            className="modal-content large"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h2>Chi tiết đơn hàng #{selectedOrder.orderId}</h2>
-              <button className="modal-close" onClick={() => setShowOrderDetails(false)}>
+              <button
+                className="modal-close"
+                onClick={() => setShowOrderDetails(false)}
+              >
                 ×
               </button>
             </div>
@@ -292,7 +316,9 @@ const Orders: React.FC = () => {
                 </div>
                 <div className="info-row">
                   <span className="label">Ngày đặt:</span>
-                  <span className="value">{formatDate(selectedOrder.orderDate)}</span>
+                  <span className="value">
+                    {formatDate(selectedOrder.orderDate)}
+                  </span>
                 </div>
                 <div className="info-row">
                   <span className="label">Trạng thái:</span>
@@ -329,13 +355,18 @@ const Orders: React.FC = () => {
               <div className="order-total">
                 <div className="total-row">
                   <span className="label">Tổng cộng:</span>
-                  <span className="value">{formatPrice(selectedOrder.totalAmount)}</span>
+                  <span className="value">
+                    {formatPrice(selectedOrder.totalAmount)}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowOrderDetails(false)}>
+              <button
+                className="btn-secondary"
+                onClick={() => setShowOrderDetails(false)}
+              >
                 Đóng
               </button>
             </div>
@@ -343,7 +374,7 @@ const Orders: React.FC = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Orders
+export default Orders;
