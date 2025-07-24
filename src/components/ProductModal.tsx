@@ -1,19 +1,34 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
-import type { ProductDto, ProductCreateRequest, ProductUpdateRequest, CategoryDto } from "../types/dto"
-import { validateImageFile, getImageDisplaySrc, compressImage } from "../utils/ImageUtils"
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
+import type {
+  ProductDto,
+  ProductCreateRequest,
+  ProductUpdateRequest,
+  CategoryDto,
+} from "../types/dto";
+import {
+  validateImageFile,
+  getImageDisplaySrc,
+  compressImage,
+} from "../utils/ImageUtils";
 
 interface ProductModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (product: ProductCreateRequest | ProductUpdateRequest) => void
-  product?: ProductDto
-  categories: CategoryDto[]
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (product: ProductCreateRequest | ProductUpdateRequest) => void;
+  product?: ProductDto;
+  categories: CategoryDto[];
 }
 
-const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, product, categories }) => {
+const ProductModal: React.FC<ProductModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  product,
+  categories,
+}) => {
   const [formData, setFormData] = useState<ProductCreateRequest>({
     productName: "",
     briefDescription: "",
@@ -23,12 +38,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
     imageBase64: "",
     imageName: "",
     categoryID: undefined,
-  })
+  });
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [imagePreview, setImagePreview] = useState<string>("")
-  const [isUploadingImage, setIsUploadingImage] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (product) {
@@ -39,10 +54,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
         technicalSpecifications: product.technicalSpecifications || "",
         price: product.price,
         imageBase64: product.imageBase64 || "",
-        imageName: product.imageName || "",
         categoryID: product.categoryID,
-      })
-      setImagePreview(getImageDisplaySrc(product.imageBase64, product.imageName))
+      });
+      setImagePreview(getImageDisplaySrc(product.imageBase64));
     } else {
       setFormData({
         productName: "",
@@ -53,100 +67,104 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
         imageBase64: "",
         imageName: "",
         categoryID: undefined,
-      })
-      setImagePreview("")
+      });
+      setImagePreview("");
     }
-    setErrors({})
-  }, [product, isOpen])
+    setErrors({});
+  }, [product, isOpen]);
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
     if (!formData.productName.trim()) {
-      newErrors.productName = "Tên sản phẩm là bắt buộc"
+      newErrors.productName = "Tên sản phẩm là bắt buộc";
     } else if (formData.productName.length > 100) {
-      newErrors.productName = "Tên sản phẩm không được vượt quá 100 ký tự"
+      newErrors.productName = "Tên sản phẩm không được vượt quá 100 ký tự";
     }
 
     if (formData.briefDescription && formData.briefDescription.length > 255) {
-      newErrors.briefDescription = "Mô tả ngắn không được vượt quá 255 ký tự"
+      newErrors.briefDescription = "Mô tả ngắn không được vượt quá 255 ký tự";
     }
 
     if (formData.price <= 0) {
-      newErrors.price = "Giá phải lớn hơn 0"
+      newErrors.price = "Giá phải lớn hơn 0";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const validation = validateImageFile(file)
+    const validation = validateImageFile(file);
     if (!validation.isValid) {
-      setErrors((prev) => ({ ...prev, image: validation.error! }))
-      return
+      setErrors((prev) => ({ ...prev, image: validation.error! }));
+      return;
     }
 
-    setIsUploadingImage(true)
-    setErrors((prev) => ({ ...prev, image: "" }))
+    setIsUploadingImage(true);
+    setErrors((prev) => ({ ...prev, image: "" }));
 
     try {
       // Compress image before converting to base64
-      const compressedBase64 = await compressImage(file, 800, 0.8)
+      const compressedBase64 = await compressImage(file, 800, 0.8);
 
       setFormData((prev) => ({
         ...prev,
         imageBase64: compressedBase64,
         imageName: file.name,
-      }))
-      setImagePreview(compressedBase64)
+      }));
+      setImagePreview(compressedBase64);
     } catch (error) {
-      console.error("Error processing image:", error)
-      setErrors((prev) => ({ ...prev, image: "Lỗi khi xử lý hình ảnh" }))
+      console.error("Error processing image:", error);
+      setErrors((prev) => ({ ...prev, image: "Lỗi khi xử lý hình ảnh" }));
     } finally {
-      setIsUploadingImage(false)
+      setIsUploadingImage(false);
     }
-  }
+  };
 
   const handleRemoveImage = () => {
     setFormData((prev) => ({
       ...prev,
       imageBase64: "",
       imageName: "",
-    }))
-    setImagePreview("")
+    }));
+    setImagePreview("");
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (validateForm()) {
-      onSave(formData)
-      onClose()
+      onSave(formData);
+      onClose();
     }
-  }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]:
         name === "price"
           ? Number.parseFloat(value) || 0
           : name === "categoryID"
-            ? value
-              ? Number.parseInt(value)
-              : undefined
-            : value,
-    }))
-  }
+          ? value
+            ? Number.parseInt(value)
+            : undefined
+          : value,
+    }));
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -171,12 +189,19 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                 className={errors.productName ? "error" : ""}
                 maxLength={100}
               />
-              {errors.productName && <span className="error-text">{errors.productName}</span>}
+              {errors.productName && (
+                <span className="error-text">{errors.productName}</span>
+              )}
             </div>
 
             <div className="form-group">
               <label htmlFor="categoryID">Danh mục</label>
-              <select id="categoryID" name="categoryID" value={formData.categoryID || ""} onChange={handleChange}>
+              <select
+                id="categoryID"
+                name="categoryID"
+                value={formData.categoryID || ""}
+                onChange={handleChange}
+              >
                 <option value="">Chọn danh mục</option>
                 {categories.map((category) => (
                   <option key={category.categoryID} value={category.categoryID}>
@@ -200,7 +225,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                 min="0"
                 step="0.01"
               />
-              {errors.price && <span className="error-text">{errors.price}</span>}
+              {errors.price && (
+                <span className="error-text">{errors.price}</span>
+              )}
             </div>
 
             <div className="form-group">
@@ -217,7 +244,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                 <div className="image-upload-area">
                   {imagePreview ? (
                     <div className="image-preview">
-                      <img src={imagePreview || "/placeholder.svg"} alt="Preview" className="preview-image" />
+                      <img
+                        src={imagePreview || "/placeholder.svg"}
+                        alt="Preview"
+                        className="preview-image"
+                      />
                       <div className="image-overlay">
                         <button
                           type="button"
@@ -238,7 +269,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                       </div>
                     </div>
                   ) : (
-                    <div className="image-placeholder" onClick={() => fileInputRef.current?.click()}>
+                    <div
+                      className="image-placeholder"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       {isUploadingImage ? (
                         <div className="uploading">
                           <div className="spinner">⏳</div>
@@ -260,7 +294,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                   </div>
                 )}
               </div>
-              {errors.image && <span className="error-text">{errors.image}</span>}
+              {errors.image && (
+                <span className="error-text">{errors.image}</span>
+              )}
             </div>
           </div>
 
@@ -275,7 +311,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
               maxLength={255}
               rows={2}
             />
-            {errors.briefDescription && <span className="error-text">{errors.briefDescription}</span>}
+            {errors.briefDescription && (
+              <span className="error-text">{errors.briefDescription}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -304,14 +342,18 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
             <button type="button" className="btn-secondary" onClick={onClose}>
               Hủy
             </button>
-            <button type="submit" className="btn-primary" disabled={isUploadingImage}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={isUploadingImage}
+            >
               {product ? "Cập nhật" : "Thêm mới"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ProductModal
+export default ProductModal;

@@ -349,10 +349,8 @@ const Products: React.FC = () => {
                     <div className="product-image">
                       <img
                         src={
-                          getImageDisplaySrc(
-                            product.imageBase64,
-                            product.imageName
-                          ) || "/placeholder.svg"
+                          getImageDisplaySrc(product.imageBase64) ||
+                          "/placeholder.svg"
                         }
                         alt={product.productName}
                         className="table-image"

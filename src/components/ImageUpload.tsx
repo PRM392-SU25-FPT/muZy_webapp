@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useRef, useState, useCallback } from "react"
-import { validateImageFile, compressImage } from "../utils/imageUtils"
+import type React from "react";
+import { useRef, useState, useCallback } from "react";
+import { validateImageFile, compressImage } from "../utils/ImageUtils";
 
 interface ImageUploadProps {
-  value?: string
-  imageName?: string
-  onChange: (base64: string, fileName: string) => void
-  onError: (error: string) => void
-  disabled?: boolean
-  maxWidth?: number
-  quality?: number
+  value?: string;
+  imageName?: string;
+  onChange: (base64: string, fileName: string) => void;
+  onError: (error: string) => void;
+  disabled?: boolean;
+  maxWidth?: number;
+  quality?: number;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -23,77 +23,77 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   maxWidth = 800,
   quality = 0.8,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const [isDragOver, setIsDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFileSelect = useCallback(
     async (file: File) => {
-      const validation = validateImageFile(file)
+      const validation = validateImageFile(file);
       if (!validation.isValid) {
-        onError(validation.error!)
-        return
+        onError(validation.error!);
+        return;
       }
 
-      setIsUploading(true)
-      onError("")
+      setIsUploading(true);
+      onError("");
 
       try {
-        const compressedBase64 = await compressImage(file, maxWidth, quality)
-        onChange(compressedBase64, file.name)
+        const compressedBase64 = await compressImage(file, maxWidth, quality);
+        onChange(compressedBase64, file.name);
       } catch (error) {
-        console.error("Error processing image:", error)
-        onError("Lỗi khi xử lý hình ảnh")
+        console.error("Error processing image:", error);
+        onError("Lỗi khi xử lý hình ảnh");
       } finally {
-        setIsUploading(false)
+        setIsUploading(false);
       }
     },
-    [onChange, onError, maxWidth, quality],
-  )
+    [onChange, onError, maxWidth, quality]
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      handleFileSelect(file)
+      handleFileSelect(file);
     }
-  }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!disabled) {
-      setIsDragOver(true)
+      setIsDragOver(true);
     }
-  }
+  };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }
+    e.preventDefault();
+    setIsDragOver(false);
+  };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
+    e.preventDefault();
+    setIsDragOver(false);
 
-    if (disabled) return
+    if (disabled) return;
 
-    const file = e.dataTransfer.files[0]
+    const file = e.dataTransfer.files[0];
     if (file) {
-      handleFileSelect(file)
+      handleFileSelect(file);
     }
-  }
+  };
 
   const handleRemove = () => {
-    onChange("", "")
+    onChange("", "");
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   const handleClick = () => {
     if (!disabled) {
-      fileInputRef.current?.click()
+      fileInputRef.current?.click();
     }
-  }
+  };
 
   return (
     <div className="image-upload-container">
@@ -114,7 +114,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       >
         {value ? (
           <div className="image-preview">
-            <img src={value || "/placeholder.svg"} alt="Preview" className="preview-image" />
+            <img
+              src={value || "/placeholder.svg"}
+              alt="Preview"
+              className="preview-image"
+            />
             <div className="image-overlay">
               <button
                 type="button"
@@ -160,7 +164,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ImageUpload
+export default ImageUpload;
