@@ -11,6 +11,7 @@ import type {
   OrderResponseDTO,
   OrderCreateDTO,
   OrderUpdateDTO,
+  OrderStatus,
 } from "../types/dto";
 
 interface OrderFilters {
@@ -50,8 +51,7 @@ export const useOrders = () => {
             response.items ?? (Array.isArray(response) ? response : []);
           const count = response.totalCount ?? items.length;
           const pages =
-            response.totalPages ??
-            Math.ceil(count / (filters?.pageSize || 10));
+            response.totalPages ?? Math.ceil(count / (filters?.pageSize || 10));
 
           setOrders(items);
           setTotalCount(count);
@@ -108,7 +108,10 @@ export const useOrders = () => {
   );
 
   const updateOrder = useCallback(
-    async (id: number, orderData: OrderUpdateDTO): Promise<OrderResponseDTO> => {
+    async (
+      id: number,
+      orderData: OrderUpdateDTO
+    ): Promise<OrderResponseDTO> => {
       try {
         const response = await orderApi.request(`/api/orders/${id}`, {
           method: "PUT",
@@ -121,7 +124,7 @@ export const useOrders = () => {
 
         // Sync local state
         setOrders((prev) =>
-          prev.map((order) => (order.orderID === id ? response : order))
+          prev.map((order) => (order.orderId === id ? response : order))
         );
 
         return response;
@@ -142,7 +145,7 @@ export const useOrders = () => {
         });
 
         // Remove locally
-        setOrders((prev) => prev.filter((o) => o.orderID !== id));
+        setOrders((prev) => prev.filter((o) => o.orderId !== id));
         setTotalCount((prev) => Math.max(0, prev - 1));
 
         return true;
@@ -170,9 +173,9 @@ export const useOrders = () => {
   );
 
   const updateOrderStatus = useCallback(
-    async (id: number, status: string): Promise<OrderResponseDTO> => {
+    async (id: number, status: OrderStatus): Promise<OrderResponseDTO> => {
       try {
-        const existing = orders.find((o) => o.orderID === id);
+        const existing = orders.find((o) => o.orderId === id);
         if (!existing) throw new Error("Order not found in local state");
 
         return await updateOrder(id, { ...existing, status });

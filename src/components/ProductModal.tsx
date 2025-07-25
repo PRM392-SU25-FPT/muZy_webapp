@@ -36,7 +36,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
     technicalSpecifications: "",
     price: 0,
     imageBase64: "",
-    imageName: "",
     categoryID: undefined,
   });
 
@@ -65,7 +64,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
         technicalSpecifications: "",
         price: 0,
         imageBase64: "",
-        imageName: "",
         categoryID: undefined,
       });
       setImagePreview("");
@@ -114,7 +112,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
       setFormData((prev) => ({
         ...prev,
         imageBase64: compressedBase64,
-        imageName: file.name,
       }));
       setImagePreview(compressedBase64);
     } catch (error) {
@@ -129,7 +126,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       imageBase64: "",
-      imageName: "",
     }));
     setImagePreview("");
     if (fileInputRef.current) {
@@ -288,11 +284,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                     </div>
                   )}
                 </div>
-                {formData.imageName && (
-                  <div className="image-info">
-                    <small>📎 {formData.imageName}</small>
-                  </div>
-                )}
               </div>
               {errors.image && (
                 <span className="error-text">{errors.image}</span>

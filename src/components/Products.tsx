@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useCallback, useMemo } from "react"
-import type { ProductDto, ProductFilterRequest } from "../types/dto"
-import ProductModal from "./ProductModal"
-import Pagination from "./Pagination"
-import { getImageDisplaySrc } from "../utils/imageUtils"
-import { useProducts } from "../hooks/useProducts"
-import { useCategories } from "../hooks/useCategories"
+import type React from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import type { ProductDto, ProductFilterRequest } from "../types/dto";
+import ProductModal from "./ProductModal";
+import Pagination from "./Pagination";
+import { getImageDisplaySrc } from "../utils/ImageUtils";
+import { useProducts } from "../hooks/useProducts";
+import { useCategories } from "../hooks/useCategories";
 
 const Products: React.FC = () => {
   const {
@@ -20,13 +20,15 @@ const Products: React.FC = () => {
     createProduct,
     updateProduct,
     deleteProduct,
-  } = useProducts()
+  } = useProducts();
 
-  const { categories, fetchCategories } = useCategories()
+  const { categories, fetchCategories } = useCategories();
 
   // Modal states
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<ProductDto | undefined>()
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<
+    ProductDto | undefined
+  >();
 
   // Filter states
   const [filters, setFilters] = useState<ProductFilterRequest>({
@@ -34,7 +36,7 @@ const Products: React.FC = () => {
     sortOrder: "asc",
     pageNumber: 1,
     pageSize: 10,
-  })
+  });
 
   // Memoize the filters to prevent unnecessary re-renders
   const memoizedFilters = useMemo(
@@ -48,112 +50,125 @@ const Products: React.FC = () => {
       filters.category,
       filters.minPrice,
       filters.maxPrice,
-    ],
-  )
+    ]
+  );
 
   // Load data only once on component mount and when filters change
   useEffect(() => {
-    let isMounted = true
+    let isMounted = true;
     const loadData = async () => {
       try {
-        await fetchProducts(memoizedFilters)
+        await fetchProducts(memoizedFilters);
       } catch (error) {
-        console.error("Error loading products:", error)
+        console.error("Error loading products:", error);
       }
-    }
+    };
 
-    if (isMounted) loadData()
+    if (isMounted) loadData();
     return () => {
-      isMounted = false
-    }
+      isMounted = false;
+    };
     // Remove fetchProducts from deps (call it directly)
-  }, [memoizedFilters])
-
+  }, [memoizedFilters]);
 
   useEffect(() => {
-    let isMounted = true
+    let isMounted = true;
     const loadCategories = async () => {
       try {
-        await fetchCategories()
+        await fetchCategories();
       } catch (error) {
-        console.error("Error loading categories:", error)
+        console.error("Error loading categories:", error);
       }
-    }
-    if (isMounted) loadCategories()
-    return () => { isMounted = false }
+    };
+    if (isMounted) loadCategories();
+    return () => {
+      isMounted = false;
+    };
     // Don't add fetchCategories to deps
-  }, [])  
+  }, []);
 
-  const handleFilterChange = useCallback((newFilters: Partial<ProductFilterRequest>) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      ...newFilters,
-      pageNumber: newFilters.pageNumber || 1,
-    }))
-  }, [])
+  const handleFilterChange = useCallback(
+    (newFilters: Partial<ProductFilterRequest>) => {
+      setFilters((prevFilters) => ({
+        ...prevFilters,
+        ...newFilters,
+        pageNumber: newFilters.pageNumber || 1,
+      }));
+    },
+    []
+  );
 
   const handlePageChange = useCallback((newPageNumber: number) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
       pageNumber: newPageNumber,
-    }))
-  }, [])
+    }));
+  }, []);
 
   const handleCreateProduct = useCallback(
     async (productData: any) => {
       try {
-        await createProduct(productData)
+        await createProduct(productData);
         // Refresh products after creation
-        await fetchProducts(memoizedFilters)
+        await fetchProducts(memoizedFilters);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi tạo sản phẩm"
-        alert(`Lỗi: ${errorMessage}`)
-        console.error("Error creating product:", error)
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Có lỗi xảy ra khi tạo sản phẩm";
+        alert(`Lỗi: ${errorMessage}`);
+        console.error("Error creating product:", error);
       }
     },
-    [createProduct, fetchProducts, memoizedFilters],
-  )
+    [createProduct, fetchProducts, memoizedFilters]
+  );
 
   const handleUpdateProduct = useCallback(
     async (productData: any) => {
       try {
         if (editingProduct) {
-          await updateProduct(editingProduct.productID, productData)
+          await updateProduct(editingProduct.productID, productData);
           // Refresh products after update
-          await fetchProducts(memoizedFilters)
+          await fetchProducts(memoizedFilters);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật sản phẩm"
-        alert(`Lỗi: ${errorMessage}`)
-        console.error("Error updating product:", error)
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Có lỗi xảy ra khi cập nhật sản phẩm";
+        alert(`Lỗi: ${errorMessage}`);
+        console.error("Error updating product:", error);
       }
     },
-    [editingProduct, updateProduct, fetchProducts, memoizedFilters],
-  )
+    [editingProduct, updateProduct, fetchProducts, memoizedFilters]
+  );
 
   const handleDeleteProduct = useCallback(
     async (productId: number) => {
       if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
         try {
-          await deleteProduct(productId)
+          await deleteProduct(productId);
           // Refresh products after deletion
-          await fetchProducts(memoizedFilters)
+          await fetchProducts(memoizedFilters);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi xóa sản phẩm"
-          alert(`Lỗi: ${errorMessage}`)
-          console.error("Error deleting product:", error)
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Có lỗi xảy ra khi xóa sản phẩm";
+          alert(`Lỗi: ${errorMessage}`);
+          console.error("Error deleting product:", error);
         }
       }
     },
-    [deleteProduct, fetchProducts, memoizedFilters],
-  )
+    [deleteProduct, fetchProducts, memoizedFilters]
+  );
 
   const formatPrice = useCallback((price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(price)
-  }, [])
+    }).format(price);
+  }, []);
 
   return (
     <div className="page-container">
@@ -167,7 +182,10 @@ const Products: React.FC = () => {
           <div className="error-content">
             <span className="error-icon">⚠️</span>
             <span className="error-message">{error}</span>
-            <button className="error-retry-btn" onClick={() => fetchProducts(memoizedFilters)}>
+            <button
+              className="error-retry-btn"
+              onClick={() => fetchProducts(memoizedFilters)}
+            >
               Thử lại
             </button>
           </div>
@@ -178,8 +196,8 @@ const Products: React.FC = () => {
         <button
           className="btn-primary"
           onClick={() => {
-            setEditingProduct(undefined)
-            setIsProductModalOpen(true)
+            setEditingProduct(undefined);
+            setIsProductModalOpen(true);
           }}
         >
           <span>➕</span>
@@ -195,7 +213,9 @@ const Products: React.FC = () => {
               type="text"
               placeholder="Tìm kiếm sản phẩm..."
               value={filters.searchTerm || ""}
-              onChange={(e) => handleFilterChange({ searchTerm: e.target.value })}
+              onChange={(e) =>
+                handleFilterChange({ searchTerm: e.target.value })
+              }
               className="search-input"
             />
             <span className="search-icon">🔍</span>
@@ -203,7 +223,9 @@ const Products: React.FC = () => {
 
           <select
             value={filters.category || ""}
-            onChange={(e) => handleFilterChange({ category: e.target.value || undefined })}
+            onChange={(e) =>
+              handleFilterChange({ category: e.target.value || undefined })
+            }
             className="filter-select"
           >
             <option value="">Tất cả danh mục</option>
@@ -217,8 +239,11 @@ const Products: React.FC = () => {
           <select
             value={`${filters.sortBy}-${filters.sortOrder}`}
             onChange={(e) => {
-              const [sortBy, sortOrder] = e.target.value.split("-")
-              handleFilterChange({ sortBy, sortOrder: sortOrder as "asc" | "desc" })
+              const [sortBy, sortOrder] = e.target.value.split("-");
+              handleFilterChange({
+                sortBy,
+                sortOrder: sortOrder as "asc" | "desc",
+              });
             }}
             className="filter-select"
           >
@@ -236,7 +261,11 @@ const Products: React.FC = () => {
               placeholder="Giá từ"
               value={filters.minPrice || ""}
               onChange={(e) =>
-                handleFilterChange({ minPrice: e.target.value ? Number.parseFloat(e.target.value) : undefined })
+                handleFilterChange({
+                  minPrice: e.target.value
+                    ? Number.parseFloat(e.target.value)
+                    : undefined,
+                })
               }
               className="price-input"
             />
@@ -246,7 +275,11 @@ const Products: React.FC = () => {
               placeholder="Giá đến"
               value={filters.maxPrice || ""}
               onChange={(e) =>
-                handleFilterChange({ maxPrice: e.target.value ? Number.parseFloat(e.target.value) : undefined })
+                handleFilterChange({
+                  maxPrice: e.target.value
+                    ? Number.parseFloat(e.target.value)
+                    : undefined,
+                })
               }
               className="price-input"
             />
@@ -279,7 +312,10 @@ const Products: React.FC = () => {
                   <td>
                     <div className="product-image">
                       <img
-                        src={getImageDisplaySrc(product.imageBase64, product.imageName) || "/placeholder.svg"}
+                        src={
+                          getImageDisplaySrc(product.imageBase64) ||
+                          "/placeholder.svg"
+                        }
                         alt={product.productName}
                         className="table-image"
                       />
@@ -287,14 +323,20 @@ const Products: React.FC = () => {
                   </td>
                   <td>
                     <div className="product-info">
-                      <span className="product-name">{product.productName}</span>
+                      <span className="product-name">
+                        {product.productName}
+                      </span>
                     </div>
                   </td>
                   <td>
-                    <span className="category-badge">{product.categoryName}</span>
+                    <span className="category-badge">
+                      {product.categoryName}
+                    </span>
                   </td>
                   <td>
-                    <span className="description-text">{product.briefDescription}</span>
+                    <span className="description-text">
+                      {product.briefDescription}
+                    </span>
                   </td>
                   <td className="price">{formatPrice(product.price)}</td>
                   <td>
@@ -303,13 +345,17 @@ const Products: React.FC = () => {
                         className="btn-edit"
                         title="Chỉnh sửa"
                         onClick={() => {
-                          setEditingProduct(product)
-                          setIsProductModalOpen(true)
+                          setEditingProduct(product);
+                          setIsProductModalOpen(true);
                         }}
                       >
                         ✏️
                       </button>
-                      <button className="btn-delete" title="Xóa" onClick={() => handleDeleteProduct(product.productID)}>
+                      <button
+                        className="btn-delete"
+                        title="Xóa"
+                        onClick={() => handleDeleteProduct(product.productID)}
+                      >
                         🗑️
                       </button>
                     </div>
@@ -328,7 +374,11 @@ const Products: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      <Pagination currentPage={filters.pageNumber} totalPages={totalPages} onPageChange={handlePageChange} />
+      <Pagination
+        currentPage={filters.pageNumber}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       {/* Product Modal */}
       <ProductModal
@@ -339,7 +389,7 @@ const Products: React.FC = () => {
         categories={categories}
       />
     </div>
-  )
-}
+  );
+};
 
-export default Products
+export default Products;
