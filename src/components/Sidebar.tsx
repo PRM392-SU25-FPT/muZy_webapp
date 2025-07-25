@@ -20,9 +20,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     },
     {
       id: "products",
-      label: "Sản phẩm & Danh mục",
+      label: "Hàng hóa",
       icon: "🎸",
       path: RoutePath.PRODUCTS,
+    },
+    {
+      id: "categories",
+      label: "Danh mục",
+      icon: "📁",
+      path: RoutePath.CATEGORIES,
+    },
+    {
+      id: "store-locations",
+      label: "Vị trí cửa hàng",
+      icon: "📍",
+      path: RoutePath.STORE_LOCATIONS,
     },
     {
       id: "orders",
@@ -34,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
   const handleLogout = () => {
     onLogout()
-    navigate(RoutePath.LOGIN)
+    navigate(RoutePath.LOGIN, { replace: true })
   }
 
   return (

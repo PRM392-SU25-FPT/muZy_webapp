@@ -1,4 +1,4 @@
-// Product DTOs
+// Product DTOs - Updated to match API spec
 export interface ProductDto {
   productID: number
   productName: string
@@ -7,7 +7,6 @@ export interface ProductDto {
   technicalSpecifications?: string
   price: number
   imageBase64?: string
-  imageName?: string
   categoryID?: number
   categoryName?: string
 }
@@ -38,7 +37,6 @@ export interface ProductCreateRequest {
   technicalSpecifications?: string
   price: number
   imageBase64?: string
-  imageName?: string
   categoryID?: number
 }
 
@@ -49,11 +47,10 @@ export interface ProductUpdateRequest {
   technicalSpecifications?: string
   price: number
   imageBase64?: string
-  imageName?: string
   categoryID?: number
 }
 
-// Category DTOs
+// Category DTOs - Updated to match API spec
 export interface CategoryDto {
   categoryID: number
   categoryName: string
@@ -72,7 +69,7 @@ export interface CategoryProductDto {
   productName: string
   briefDescription?: string
   price: number
-  imageURL?: string
+  imageBase64?: string
 }
 
 export interface CategoryListResponse {
@@ -84,47 +81,74 @@ export interface CategoryCreateRequest {
   categoryName: string
 }
 
-// Order DTOs
+// Store Location DTOs - Updated to match API spec (LocationDTO)
+export interface StoreLocationDto {
+  locationID: number
+  latitude: number
+  longitude: number
+  address: string
+}
+
+export interface StoreLocationCreateRequest {
+  latitude: number
+  longitude: number
+  address: string
+}
+
+export interface StoreLocationUpdateRequest {
+  locationID: number
+  latitude: number
+  longitude: number
+  address: string
+}
+
+export interface StoreLocationListResponse {
+  locations: StoreLocationDto[]
+  totalCount: number
+}
+
+// Order DTOs - Updated to match API spec
 export interface OrderCreateDTO {
   userId: number
+  cartId: number
   orderDate: Date
-  totalAmount: number
-  status: string
+  billingAddress: string
 }
 
 export interface OrderUpdateDTO {
-  totalAmount: number
-  status: string
+  status: OrderStatus
 }
 
 export interface OrderResponseDTO {
   orderId: number
   userId?: number
+  cartId?: number
+  paymentMethod?: string
   orderDate: Date
   totalAmount: number
-  status: string
+  billingAddress?: string
   orderDetails?: OrderDetailResponseDTO[]
-  customerName?: string
+  status: OrderStatus
 }
 
-// Order Detail DTOs
-export interface OrderDetailCreateDTO {
-  orderId: number
-  productId: number
-  quantity: number
-  unitPrice: number
-}
-
-export interface OrderDetailUpdateDTO {
-  quantity: number
-  unitPrice: number
-}
-
+// Order Detail DTOs - Updated to match API spec
 export interface OrderDetailResponseDTO {
-  orderDetailId: number
-  orderId: number
   productId: number
-  productName?: string
   quantity: number
   unitPrice: number
+}
+
+// Order Status - Updated to match API spec
+export interface OrderStatus {
+  orderStatusID: number
+  status: OrderStatusEnum
+  description?: string
+  updatedAt: Date
+}
+
+export enum OrderStatusEnum {
+  Pending = 1,
+  Confirmed = 2,
+  Shipped = 3,
+  Delivered = 4,
 }

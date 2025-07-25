@@ -1,34 +1,30 @@
 "use client"
-
-import { useState } from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { RoutePath } from "./routes/RoutePath"
 import Layout from "./components/Layout"
 import Login from "./components/Login"
 import Dashboard from "./components/Dashboard"
 import Products from "./components/Products"
+import Categories from "./components/Categories"
+import StoreLocations from "./components/StoreLocations"
 import Orders from "./components/Orders"
 import NotFound from "./components/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute"
 import AuthRoute from "./components/AuthRoute"
 import "./App.css"
+import { useAuth } from "./hooks/useAuth"
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { isAuthenticated, isInitialized, login, logout, loading } = useAuth()
 
-  const handleLogin = (username: string, password: string) => {
-    // Simple authentication logic - replace with real authentication
-    if (username === "admin" && password === "password") {
-      setIsAuthenticated(true)
-      return true
-    } else {
-      alert("Invalid credentials. Use admin/password")
-      return false
-    }
-  }
-
-  const handleLogout = () => {
-    setIsAuthenticated(false)
+  // Show loading while initializing auth
+  if (!isInitialized) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner">⏳</div>
+        <p>Đang khởi tạo ứng dụng...</p>
+      </div>
+    )
   }
 
   return (
@@ -40,7 +36,7 @@ function App() {
             path={RoutePath.LOGIN}
             element={
               <AuthRoute isAuthenticated={isAuthenticated}>
-                <Login onLogin={handleLogin} />
+                <Login onLogin={login} />
               </AuthRoute>
             }
           />
@@ -50,16 +46,16 @@ function App() {
             path="/"
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
-                <Layout onLogout={handleLogout} />
+                <Layout onLogout={logout} />
               </ProtectedRoute>
             }
           >
             <Route index element={<Dashboard />} />
             <Route path={RoutePath.PRODUCTS} element={<Products />} />
+            <Route path={RoutePath.CATEGORIES} element={<Categories />} />
+            <Route path={RoutePath.STORE_LOCATIONS} element={<StoreLocations />} />
             <Route path={RoutePath.ORDERS} element={<Orders />} />
           </Route>
-
-          {/* 404 Route */}
           <Route path={RoutePath.NOT_FOUND} element={<NotFound />} />
         </Routes>
       </Router>

@@ -1,119 +1,38 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useEffect } from "react";
-import type { OrderResponseDTO } from "../types/dto";
-import { useOrders } from "../hooks/useOrders";
+import type React from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import type { OrderResponseDTO } from "../types/dto"
+import { useOrders } from "../hooks/useOrders"
 
 const Orders: React.FC = () => {
-  const { orders, loading, fetchOrders, updateOrderStatus } = useOrders();
+  const { orders, loading, fetchOrders, updateOrderStatus } = useOrders()
 
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<OrderResponseDTO | null>(
-    null
-  );
-  const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponseDTO | null>(null)
+  const [showOrderDetails, setShowOrderDetails] = useState(false)
 
-  // Mock data - replace with actual API calls
-  // const mockOrders: OrderResponseDTO[] = [
-  //   {
-  //     orderId: 12345,
-  //     userId: 1,
-  //     customerName: "Nguyễn Văn A",
-  //     orderDate: new Date("2024-01-15"),
-  //     totalAmount: 3200000,
-  //     status: "pending",
-  //     orderDetails: [
-  //       {
-  //         orderDetailId: 1,
-  //         orderId: 12345,
-  //         productId: 1,
-  //         productName: "Guitar Acoustic Yamaha",
-  //         quantity: 1,
-  //         unitPrice: 2500000,
-  //       },
-  //       {
-  //         orderDetailId: 2,
-  //         orderId: 12345,
-  //         productId: 4,
-  //         productName: "Dây đàn guitar",
-  //         quantity: 2,
-  //         unitPrice: 350000,
-  //       },
-  //     ],
-  //   },
-  //   {
-  //     orderId: 12346,
-  //     userId: 2,
-  //     customerName: "Trần Thị B",
-  //     orderDate: new Date("2024-01-14"),
-  //     totalAmount: 8900000,
-  //     status: "confirmed",
-  //     orderDetails: [
-  //       {
-  //         orderDetailId: 3,
-  //         orderId: 12346,
-  //         productId: 2,
-  //         productName: "Piano Điện Casio",
-  //         quantity: 1,
-  //         unitPrice: 8900000,
-  //       },
-  //     ],
-  //   },
-  //   {
-  //     orderId: 12347,
-  //     userId: 3,
-  //     customerName: "Lê Văn C",
-  //     orderDate: new Date("2024-01-13"),
-  //     totalAmount: 1800000,
-  //     status: "shipped",
-  //     orderDetails: [
-  //       {
-  //         orderDetailId: 4,
-  //         orderId: 12347,
-  //         productId: 4,
-  //         productName: "Violin 4/4",
-  //         quantity: 1,
-  //         unitPrice: 1800000,
-  //       },
-  //     ],
-  //   },
-  //   {
-  //     orderId: 12348,
-  //     userId: 4,
-  //     customerName: "Phạm Thị D",
-  //     orderDate: new Date("2024-01-12"),
-  //     totalAmount: 12000000,
-  //     status: "delivered",
-  //     orderDetails: [
-  //       {
-  //         orderDetailId: 5,
-  //         orderId: 12348,
-  //         productId: 3,
-  //         productName: "Trống Jazz Pearl",
-  //         quantity: 1,
-  //         unitPrice: 12000000,
-  //       },
-  //     ],
-  //   },
-  // ]
+  const filters = useMemo(
+    () => ({
+      pageNumber: 1,
+      pageSize: 50,
+    }),
+    [],
+  )
 
   useEffect(() => {
-    fetchOrders({ status: filterStatus });
-  }, [filterStatus, fetchOrders]);
+    let isMounted = true;
+    const loadOrders = async () => {
+      try {
+        await fetchOrders(filters);
+      } catch (error) {
+        console.error("Error loading orders:", error);
+      }
+    };
+    if (isMounted) loadOrders();
+    return () => { isMounted = false };
+  }, []); 
 
-  // const loadOrders = async () => {
-  //   setLoading(true)
-  //   try {
-  //     // Simulate API call
-  //     await new Promise((resolve) => setTimeout(resolve, 500))
-  //     setOrders(mockOrders)
-  //   } catch (error) {
-  //     console.error("Error loading orders:", error)
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -122,55 +41,61 @@ const Orders: React.FC = () => {
       shipped: "Đang giao",
       delivered: "Đã giao",
       cancelled: "Đã hủy",
-    };
-    return statusMap[status] || status;
-  };
+    }
+    return statusMap[status] || status
+  }
 
   const getStatusStats = () => {
-    const stats = {
+    return {
       pending: orders.filter((o) => o.status === "pending").length,
       confirmed: orders.filter((o) => o.status === "confirmed").length,
       shipped: orders.filter((o) => o.status === "shipped").length,
       delivered: orders.filter((o) => o.status === "delivered").length,
-    };
-    return stats;
-  };
-
-  const handleStatusUpdate = async (orderId: number, newStatus: string) => {
-    try {
-      await updateOrderStatus(orderId, newStatus);
-    } catch (error) {
-      console.error("Error updating order status:", error);
     }
-  };
+  }
 
-  const handleViewOrderDetails = (order: OrderResponseDTO) => {
-    setSelectedOrder(order);
-    setShowOrderDetails(true);
-  };
+  const handleStatusUpdate = useCallback(
+    async (orderId: number, newStatus: string) => {
+      try {
+        await updateOrderStatus(orderId, newStatus)
+        // Optional: refetch after update (won't loop since effect only runs on mount)
+        await fetchOrders(filters)
+      } catch (error) {
+        console.error("Error updating order status:", error)
+      }
+    },
+    [updateOrderStatus, fetchOrders, filters],
+  )
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
+  const handleViewOrderDetails = useCallback((order: OrderResponseDTO) => {
+    setSelectedOrder(order)
+    setShowOrderDetails(true)
+  }, [])
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date));
-  };
+  const formatPrice = useCallback(
+    (price: number) =>
+      new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price),
+    [],
+  )
 
-  const filteredOrders =
-    filterStatus === "all"
-      ? orders
-      : orders.filter((order) => order.status === filterStatus);
-  const stats = getStatusStats();
+  const formatDate = useCallback(
+    (date: Date | string) =>
+      new Intl.DateTimeFormat("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(date)),
+    [],
+  )
+
+  const filteredOrders = useMemo(
+    () => (filterStatus === "all" ? orders : orders.filter((order) => order.status === filterStatus)),
+    [orders, filterStatus],
+  )
+
+  const stats = useMemo(() => getStatusStats(), [orders])
 
   return (
     <div className="page-container">
@@ -211,11 +136,7 @@ const Orders: React.FC = () => {
       </div>
 
       <div className="filter-section">
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="status-filter"
-        >
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="status-filter">
           <option value="all">Tất cả đơn hàng</option>
           <option value="pending">Chờ xử lý</option>
           <option value="confirmed">Đã xác nhận</option>
@@ -246,15 +167,13 @@ const Orders: React.FC = () => {
               {filteredOrders.map((order) => (
                 <tr key={order.orderId}>
                   <td className="order-id">#{order.orderId}</td>
-                  <td>{order.customerName}</td>
+                  <td>{order.customerName || `User ${order.userId}`}</td>
                   <td>{formatDate(order.orderDate)}</td>
                   <td className="price">{formatPrice(order.totalAmount)}</td>
                   <td>
                     <select
                       value={order.status}
-                      onChange={(e) =>
-                        handleStatusUpdate(order.orderId, e.target.value)
-                      }
+                      onChange={(e) => handleStatusUpdate(order.orderId, e.target.value)}
                       className={`status-select status-${order.status}`}
                     >
                       <option value="pending">Chờ xử lý</option>
@@ -266,11 +185,7 @@ const Orders: React.FC = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button
-                        className="btn-view"
-                        title="Xem chi tiết"
-                        onClick={() => handleViewOrderDetails(order)}
-                      >
+                      <button className="btn-view" title="Xem chi tiết" onClick={() => handleViewOrderDetails(order)}>
                         👁️
                       </button>
                     </div>
@@ -290,20 +205,11 @@ const Orders: React.FC = () => {
 
       {/* Order Details Modal */}
       {showOrderDetails && selectedOrder && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowOrderDetails(false)}
-        >
-          <div
-            className="modal-content large"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="modal-overlay" onClick={() => setShowOrderDetails(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Chi tiết đơn hàng #{selectedOrder.orderId}</h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowOrderDetails(false)}
-              >
+              <button className="modal-close" onClick={() => setShowOrderDetails(false)}>
                 ×
               </button>
             </div>
@@ -312,13 +218,11 @@ const Orders: React.FC = () => {
               <div className="order-info">
                 <div className="info-row">
                   <span className="label">Khách hàng:</span>
-                  <span className="value">{selectedOrder.customerName}</span>
+                  <span className="value">{selectedOrder.customerName || `User ${selectedOrder.userId}`}</span>
                 </div>
                 <div className="info-row">
                   <span className="label">Ngày đặt:</span>
-                  <span className="value">
-                    {formatDate(selectedOrder.orderDate)}
-                  </span>
+                  <span className="value">{formatDate(selectedOrder.orderDate)}</span>
                 </div>
                 <div className="info-row">
                   <span className="label">Trạng thái:</span>
@@ -326,47 +230,48 @@ const Orders: React.FC = () => {
                     {getStatusLabel(selectedOrder.status)}
                   </span>
                 </div>
+                <div className="info-row">
+                  <span className="label">Địa chỉ:</span>
+                  <span className="value">{selectedOrder.billingAddress}</span>
+                </div>
               </div>
 
-              <div className="order-items">
-                <h3>Sản phẩm đã đặt</h3>
-                <table className="items-table">
-                  <thead>
-                    <tr>
-                      <th>Sản phẩm</th>
-                      <th>Số lượng</th>
-                      <th>Đơn giá</th>
-                      <th>Thành tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedOrder.orderDetails?.map((item) => (
-                      <tr key={item.orderDetailId}>
-                        <td>{item.productName}</td>
-                        <td>{item.quantity}</td>
-                        <td>{formatPrice(item.unitPrice)}</td>
-                        <td>{formatPrice(item.quantity * item.unitPrice)}</td>
+              {selectedOrder.orderDetails && selectedOrder.orderDetails.length > 0 && (
+                <div className="order-items">
+                  <h3>Sản phẩm đã đặt</h3>
+                  <table className="items-table">
+                    <thead>
+                      <tr>
+                        <th>Sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                        <th>Thành tiền</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {selectedOrder.orderDetails.map((item, index) => (
+                        <tr key={index}>
+                          <td>Sản phẩm #{item.productId}</td>
+                          <td>{item.quantity}</td>
+                          <td>{formatPrice(item.unitPrice)}</td>
+                          <td>{formatPrice(item.quantity * item.unitPrice)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               <div className="order-total">
                 <div className="total-row">
                   <span className="label">Tổng cộng:</span>
-                  <span className="value">
-                    {formatPrice(selectedOrder.totalAmount)}
-                  </span>
+                  <span className="value">{formatPrice(selectedOrder.totalAmount)}</span>
                 </div>
               </div>
             </div>
 
             <div className="modal-actions">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowOrderDetails(false)}
-              >
+              <button className="btn-secondary" onClick={() => setShowOrderDetails(false)}>
                 Đóng
               </button>
             </div>
@@ -374,7 +279,7 @@ const Orders: React.FC = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default Orders;
+export default Orders

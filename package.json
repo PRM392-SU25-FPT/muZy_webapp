@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@types/lodash": "^4.17.20",
+    "abort-controller": "^3.0.0",
+    "axios": "^1.11.0",
+    "google-maps": "^4.3.3",
     "lodash": "^4.17.21",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

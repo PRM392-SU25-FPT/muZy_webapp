@@ -7,6 +7,7 @@ interface AuthRouteProps {
 }
 
 const AuthRoute: React.FC<AuthRouteProps> = ({ children, isAuthenticated }) => {
+  // If user is already authenticated, redirect to dashboard
   if (isAuthenticated) {
     return <Navigate to="/" replace />
   }

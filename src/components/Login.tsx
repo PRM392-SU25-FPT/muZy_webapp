@@ -5,13 +5,14 @@ import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 
 interface LoginProps {
-  onLogin: (username: string, password: string) => boolean
+  onLogin: (username: string, password: string) => Promise<void>
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -20,18 +21,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     setIsLoading(true)
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const success = onLogin(username, password)
-
-    if (success) {
+    try {
+      await onLogin(username, password)
       navigate(from, { replace: true })
+    } catch (error) {
+      console.error("Login error:", error)
+      const errorMessage = error instanceof Error ? error.message : "Đăng nhập thất bại"
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   return (
@@ -42,6 +44,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <h1>Music Shop Admin</h1>
           <p>Quản lý cửa hàng nhạc cụ</p>
         </div>
+
+        {error && (
+          <div className="error-message">
+            <span className="error-icon">⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
@@ -75,9 +84,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="btn-music-note">♫</div>
           </button>
         </form>
-
         <div className="login-footer">
-          <small>Demo: admin / password</small>
         </div>
       </div>
     </div>

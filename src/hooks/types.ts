@@ -11,13 +11,21 @@ export interface ApiOptions {
   body?: unknown
 }
 
-// Pagination types
-export interface PaginatedResponse<T> {
-  data: T[]
-  totalCount: number
-  pageNumber: number
-  pageSize: number
-  totalPages: number
+// Auth API Response types based on OpenAPI spec
+export interface AuthApiResponse {
+  success: boolean
+  message?: string
+  token?: string
+  user: User
+}
+
+export interface User {
+  userID: number
+  username: string
+  email: string
+  phoneNumber?: string
+  address?: string
+  role: string
 }
 
 // Product API Response types
@@ -29,9 +37,7 @@ export interface ProductsApiResponse {
   totalPages: number
 }
 
-export interface ProductApiResponse {
-  product: import("../types/dto").ProductDto
-}
+export interface ProductApiResponse extends import("../types/dto").ProductDto {}
 
 // Category API Response types
 export interface CategoriesApiResponse {
@@ -39,63 +45,49 @@ export interface CategoriesApiResponse {
   totalCount: number
 }
 
-export interface CategoryApiResponse {
-  category: import("../types/dto").CategoryDto
-}
+export interface CategoryApiResponse extends import("../types/dto").CategoryDto {}
 
-// Cart API Response types
+// Store Location API Response types
+export interface StoreLocationsApiResponse extends Array<import("../types/dto").StoreLocationDto> {}
+
+export interface StoreLocationApiResponse extends import("../types/dto").StoreLocationDto {}
+
+// Cart API Response types based on OpenAPI spec
 export interface CartApiResponse {
-  items: CartItem[]
+  cartID: number
+  userID?: number
+  totalPrice: number
+  status: string
+  cartItems: CartItem[]
   totalItems: number
-  totalAmount: number
 }
 
 export interface CartItem {
-  id: number
-  productId: number
-  productName: string
-  price: number
+  cartItemID: number
+  cartID?: number
+  productID?: number
+  productName?: string
+  productImageURL?: string
   quantity: number
-  imageBase64?: string
-  total: number
+  price: number
+  totalPrice: number
 }
 
-// Order API Response types
+// Order API Response types based on OpenAPI spec
 export interface OrdersApiResponse {
-  orders: import("../types/dto").OrderResponseDTO[]
   totalCount: number
   pageNumber: number
   pageSize: number
   totalPages: number
+  items: import("../types/dto").OrderResponseDTO[]
 }
 
-export interface OrderApiResponse {
-  order: import("../types/dto").OrderResponseDTO
-}
-
-// Auth API Response types
-export interface AuthApiResponse {
-  user: User
-  token: string
-}
-
-export interface User {
-  id: number
-  email: string
-  name: string
-  role: string
-}
-
-// Price range response
-export interface PriceRangeApiResponse {
-  minPrice: number
-  maxPrice: number
-}
+export interface OrderApiResponse extends import("../types/dto").OrderResponseDTO {}
 
 // Generic success response
 export interface SuccessResponse {
-  message: string
   success: boolean
+  message?: string
 }
 
 // Error response type

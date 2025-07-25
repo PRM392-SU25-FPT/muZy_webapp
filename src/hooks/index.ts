@@ -3,5 +3,6 @@ export { useApi, getAuthToken, setAuthToken, removeAuthToken, getAuthHeaders } f
 export { useAuth } from "./useAuth"
 export { useProducts } from "./useProducts"
 export { useCategories } from "./useCategories"
+export { useStoreLocations } from "./useStoreLocations"
 export { useCart } from "./useCart"
 export { useOrders } from "./useOrders"

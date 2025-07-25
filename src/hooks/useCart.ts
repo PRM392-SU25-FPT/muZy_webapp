@@ -1,214 +1,158 @@
-"use client"
+"use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { useApi } from "./useApi"
-import type { CartApiResponse, CartItem, SuccessResponse } from "./types"
+import { useState, useCallback, useEffect } from "react";
+import { useApi, getAuthHeaders } from "./useApi";
+import type { CartApiResponse, CartItem, SuccessResponse } from "./types";
 
 interface AddToCartRequest {
-  productId: number
-  quantity: number
+  productID: number;
+  quantity: number;
 }
-
 interface UpdateCartRequest {
-  quantity: number
+  cartItemID: number;
+  quantity: number;
 }
-
 interface Cart {
-  items: CartItem[]
-  totalItems: number
-  totalAmount: number
+  cartID: number;
+  userID?: number;
+  totalPrice: number;
+  status: string;
+  cartItems: CartItem[];
+  totalItems: number;
 }
 
 export const useCart = () => {
-  const [cart, setCart] = useState<Cart>({
-    items: [],
-    totalItems: 0,
-    totalAmount: 0,
-  })
-  const cartApi = useApi<CartApiResponse>()
-  const cartActionApi = useApi<SuccessResponse>()
+  const [cart, setCart] = useState<Cart | null>(null);
 
-  // Mock cart data for development
-  const mockCartItems: CartItem[] = useMemo(() => [
-    {
-      id: 1,
-      productId: 1,
-      productName: "Guitar Acoustic Yamaha",
-      price: 2500000,
-      quantity: 1,
-      total: 2500000,
-    },
-    {
-      id: 2,
-      productId: 2,
-      productName: "Piano Điện Casio",
-      price: 8900000,
-      quantity: 1,
-      total: 8900000,
-    },
-  ], [])
+  const cartApi = useApi<CartApiResponse>();
+  const cartActionApi = useApi<SuccessResponse>();
 
-  const mockCart = useMemo<Cart>(() => ({
-    items: mockCartItems,
-    totalItems: 2,
-    totalAmount: 11400000,
-  }), [mockCartItems])
-
-  const fetchCart = useCallback(async (): Promise<Cart | undefined> => {
+  const fetchCart = useCallback(async (): Promise<Cart | null> => {
     try {
-      setCart(mockCart)
-      return mockCart 
-    } catch {
-      // Handle error and return undefined
-      return undefined
+      const response = await cartApi.request("/api/cart", {
+        headers: getAuthHeaders(),
+      });
+
+      if (response) {
+        const cartData: Cart = {
+          cartID: response.cartID,
+          userID: response.userID,
+          totalPrice: response.totalPrice,
+          status: response.status || "active",
+          cartItems: response.cartItems || [],
+          totalItems: response.totalItems || 0,
+        };
+        setCart(cartData);
+        return cartData;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      return null;
     }
-  }, [mockCart])
+  }, [cartApi]); // <-- useApi is stable, so this won't recreate each render
 
   useEffect(() => {
-    // Load cart on component mount
-    fetchCart()
-  }, [fetchCart])
+    fetchCart();
+  }, [fetchCart]); // Will only run once (no loop)
 
-  const addToCart = useCallback(async (data: AddToCartRequest): Promise<CartItem> => {
-    try {
-      // Mock response
-      const newItem: CartItem = {
-        id: Date.now(),
-        productId: data.productId,
-        productName: `Product ${data.productId}`,
-        price: 1000000,
-        quantity: data.quantity,
-        total: 1000000 * data.quantity,
+  const addToCart = useCallback(
+    async (data: AddToCartRequest): Promise<boolean> => {
+      try {
+        const res = await cartActionApi.request("/api/cart/add", {
+          method: "POST",
+          body: data,
+          headers: getAuthHeaders(),
+        });
+        if (res?.success) {
+          await fetchCart();
+          return true;
+        }
+        return false;
+      } catch (e) {
+        console.error("Error adding to cart:", e);
+        return false;
       }
+    },
+    [cartActionApi, fetchCart]
+  );
 
-      setCart((prev) => ({
-        items: [...prev.items, newItem],
-        totalItems: prev.totalItems + data.quantity,
-        totalAmount: prev.totalAmount + newItem.total,
-      }))
-
-      return newItem
-
-      // Real API call:
-      // const response = await cartActionApi.request('/api/cart/add', {
-      //   method: 'POST',
-      //   body: data,
-      //   headers: getAuthHeaders(),
-      // })
-      //
-      // if (response) {
-      //   await fetchCart() // Refresh cart
-      // }
-      //
-      // return response
-    } catch (error) {
-      console.error("Error adding to cart:", error)
-      throw error
-    }
-  }, [])
-
-  const updateCartItem = useCallback(async (itemId: number, data: UpdateCartRequest): Promise<boolean> => {
-    try {
-      // Mock response
-      setCart((prev) => {
-        const updatedItems = prev.items.map((item) => {
-          if (item.id === itemId) {
-            const updatedItem = { ...item, quantity: data.quantity, total: item.price * data.quantity }
-            return updatedItem
-          }
-          return item
-        })
-
-        const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0)
-        const totalAmount = updatedItems.reduce((sum, item) => sum + item.total, 0)
-
-        return {
-          items: updatedItems,
-          totalItems,
-          totalAmount,
+  const updateCartItem = useCallback(
+    async (data: UpdateCartRequest): Promise<boolean> => {
+      try {
+        const res = await cartActionApi.request("/api/cart/update", {
+          method: "PUT",
+          body: data,
+          headers: getAuthHeaders(),
+        });
+        if (res?.success) {
+          setCart((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  cartItems: prev.cartItems.map((item) =>
+                    item.cartItemID === data.cartItemID
+                      ? { ...item, quantity: data.quantity }
+                      : item
+                  ),
+                }
+              : prev
+          );
+          return true;
         }
-      })
+        return false;
+      } catch (e) {
+        console.error("Error updating cart item:", e);
+        return false;
+      }
+    },
+    [cartActionApi]
+  );
 
-      return true
-
-      // Real API call:
-      // const response = await cartActionApi.request('/api/cart/update', {
-      //   method: 'PUT',
-      //   body: { itemId, ...data },
-      //   headers: getAuthHeaders(),
-      // })
-      //
-      // if (response) {
-      //   await fetchCart() // Refresh cart
-      // }
-      //
-      // return response.success
-    } catch (error) {
-      console.error("Error updating cart item:", error)
-      throw error
-    }
-  }, [])
-
-  const removeFromCart = useCallback(async (itemId: number): Promise<boolean> => {
-    try {
-      // Mock response
-      setCart((prev) => {
-        const updatedItems = prev.items.filter((item) => item.id !== itemId)
-        const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0)
-        const totalAmount = updatedItems.reduce((sum, item) => sum + item.total, 0)
-
-        return {
-          items: updatedItems,
-          totalItems,
-          totalAmount,
+  const removeFromCart = useCallback(
+    async (itemId: number): Promise<boolean> => {
+      try {
+        const res = await cartActionApi.request(`/api/cart/remove/${itemId}`, {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        });
+        if (res?.success) {
+          setCart((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  cartItems: prev.cartItems.filter((i) => i.cartItemID !== itemId),
+                  totalItems: prev.totalItems - 1,
+                }
+              : prev
+          );
+          return true;
         }
-      })
-
-      return true
-
-      // Real API call:
-      // await cartActionApi.request(`/api/cart/remove/${itemId}`, {
-      //   method: 'DELETE',
-      //   headers: getAuthHeaders(),
-      // })
-      //
-      // await fetchCart() // Refresh cart
-      // return true
-    } catch (error) {
-      console.error("Error removing from cart:", error)
-      throw error
-    }
-  }, [])
+        return false;
+      } catch (e) {
+        console.error("Error removing from cart:", e);
+        return false;
+      }
+    },
+    [cartActionApi]
+  );
 
   const clearCart = useCallback(async (): Promise<boolean> => {
     try {
-      // Mock response
-      setCart({
-        items: [],
-        totalItems: 0,
-        totalAmount: 0,
-      })
-
-      return true
-
-      // Real API call:
-      // await cartActionApi.request('/api/cart/clear', {
-      //   method: 'DELETE',
-      //   headers: getAuthHeaders(),
-      // })
-      //
-      // setCart({
-      //   items: [],
-      //   totalItems: 0,
-      //   totalAmount: 0
-      // })
-      //
-      // return true
-    } catch (error) {
-      console.error("Error clearing cart:", error)
-      throw error
+      const res = await cartActionApi.request("/api/cart/clear", {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (res?.success) {
+        setCart(null);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("Error clearing cart:", e);
+      return false;
     }
-  }, [])
+  }, [cartActionApi]);
 
   return {
     cart,
@@ -219,5 +163,5 @@ export const useCart = () => {
     updateCartItem,
     removeFromCart,
     clearCart,
-  }
-}
+  };
+};

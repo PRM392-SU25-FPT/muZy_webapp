@@ -1,127 +1,169 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { useApi, setAuthToken, removeAuthToken, getAuthToken } from "./useApi"
-
-interface User {
-  id: number
-  email: string
-  name: string
-  role: string
-}
+import { useState, useCallback, useEffect } from "react"
+import { useApi, getAuthHeaders } from "./useApi"
 
 interface LoginRequest {
-  email: string
+  username: string
   password: string
 }
 
 interface RegisterRequest {
+  username: string
   email: string
   password: string
-  name: string
+  phoneNumber?: string
+  address?: string
 }
 
-// interface ForgotPasswordRequest {
-//   email: string
-// }
-
-// interface ResetPasswordRequest {
-//   token: string
-//   password: string
-// }
-
 interface AuthResponse {
-  user: User
-  token: string
+  success: boolean
+  message: string
+  token?: string
+  user?: any
 }
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<any>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const api = useApi<AuthResponse>()
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Mock data for development
-  const mockUser = useMemo<User>(() => ({
-    id: 1,
-    email: "admin@musicshop.com",
-    name: "Admin User",
-    role: "admin",
-  }), [])
+  const authApi = useApi<AuthResponse>()
+  const profileApi = useApi<any>()
 
-  const mockAuthResponse = useMemo<AuthResponse>(() => ({
-    user: mockUser,
-    token: "mock-jwt-token-12345",
-  }), [mockUser])
-
+  // Khởi tạo state khi app load
   useEffect(() => {
-    const token = getAuthToken()
-    if (token) {
-      // In real app, validate token with backend
-      setUser(mockUser)
-      setIsAuthenticated(true)
-    }
-  }, [mockUser])
+    const initializeAuth = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) {
+          setIsInitialized(true)
+          return
+        }
 
-  const login = useCallback(async (credentials: LoginRequest) => {
-    try {
-      // For now, use mock data - replace with real API call
-      if (credentials.email === "admin@musicshop.com" && credentials.password === "password") {
-        setAuthToken(mockAuthResponse.token)
-        setUser(mockAuthResponse.user)
-        setIsAuthenticated(true)
-        return mockAuthResponse
-      } else {
-        throw new Error("Invalid credentials")
+        // Gọi API để xác thực token và lấy thông tin user
+        const profile = await profileApi.request("/api/auth/profile", {
+          method: "GET",
+          headers: {
+            ...getAuthHeaders(),
+          },
+        })
+
+        if (profile) {
+          setUser(profile)
+          setIsAuthenticated(true)
+        } else {
+          localStorage.removeItem("token")
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error)
+        localStorage.removeItem("token")
+      } finally {
+        setIsInitialized(true)
       }
+    }
+
+    initializeAuth()
+  }, [profileApi])
+
+  const login = useCallback(async (username: string, password: string): Promise<void> => {
+    try {
+      const response = await authApi.request("/api/auth/login", {
+        method: "POST",
+        body: { username, password },
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (!response?.success || !response.token) {
+        throw new Error(response?.message || "Đăng nhập thất bại")
+      }
+
+      localStorage.setItem("token", response.token)
+      localStorage.setItem("username", username)
+
+      const profile = await profileApi.request("/api/auth/profile", {
+        method: "GET",
+        headers: {
+          ...getAuthHeaders(),
+        },
+      })
+
+      setUser(profile || response.user || { username })
+      setIsAuthenticated(true)
     } catch (error) {
-      setUser(null)
-      setIsAuthenticated(false)
+      console.error("Login error:", error)
       throw error
     }
-  }, [mockAuthResponse])
+  }, [authApi, profileApi])
 
-  const register = useCallback(async (userData: RegisterRequest) => {
-      const mockResponse = {
-        ...mockAuthResponse,
-        user: { ...mockUser, email: userData.email, name: userData.name },
+  const register = useCallback(
+    async (userData: RegisterRequest): Promise<AuthResponse> => {
+      try {
+        const response = await authApi.request("/api/auth/register", {
+          method: "POST",
+          body: userData,
+          headers: { "Content-Type": "application/json" },
+        })
+
+        if (response?.success && response.token) {
+          localStorage.setItem("token", response.token)
+          localStorage.setItem("username", userData.username)
+          setUser(response.user)
+          setIsAuthenticated(true)
+          return response
+        }
+
+        throw new Error(response?.message || "Registration failed")
+      } catch (error: any) {
+        console.error("Registration error:", error)
+        throw new Error(error?.message || "Registration request failed")
       }
-
-      setAuthToken(mockResponse.token)
-      setUser(mockResponse.user)
-      setIsAuthenticated(true)
-      return mockResponse
-  }, [mockAuthResponse, mockUser])
+    },
+    [authApi],
+  )
 
   const logout = useCallback(() => {
-    removeAuthToken()
+    localStorage.removeItem("token")
+    localStorage.removeItem("username")
     setUser(null)
     setIsAuthenticated(false)
   }, [])
 
-  const forgotPassword = useCallback(async () => {
-      return { message: "Password reset email sent" }
-  }, [])
+  const checkAuth = useCallback(async (): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        return false
+      }
 
-  const resetPassword = useCallback(() => {
-      return { message: "Password reset successful" }
-  }, [])
+      const profile = await profileApi.request("/api/auth/profile", {
+        method: "GET",
+        headers: { ...getAuthHeaders() },
+      })
 
-  const updateProfile = useCallback(async (userData: Partial<User>) => {
-      const updatedUser = { ...mockUser, ...userData }
-      setUser(updatedUser)
-      return updatedUser
-  }, [mockUser])
+      if (profile) {
+        setUser(profile)
+        setIsAuthenticated(true)
+        return true
+      }
+
+      return false
+    } catch (error) {
+      console.error("Auth check failed:", error)
+      logout()
+      return false
+    }
+  }, [profileApi, logout])
 
   return {
     user,
     isAuthenticated,
-    loading: api.loading,
-    error: api.error,
+    isInitialized,
+    loading: authApi.loading || profileApi.loading,
+    error: authApi.error || profileApi.error,
     login,
     register,
     logout,
-    forgotPassword,
-    resetPassword,
-    updateProfile,
+    checkAuth,
   }
 }

@@ -5,6 +5,8 @@ export const RoutePath = {
   // Protected routes
   DASHBOARD: "/",
   PRODUCTS: "/products",
+  CATEGORIES: "/categories",
+  STORE_LOCATIONS: "/store-locations",
   ORDERS: "/orders",
 
   // Fallback
