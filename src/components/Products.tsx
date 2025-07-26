@@ -106,22 +106,32 @@ const Products: React.FC = () => {
   }, []);
 
   const handleCreateProduct = useCallback(
-    async (productData: any) => {
-      try {
-        await createProduct(productData);
-        // Refresh products after creation
-        await fetchProducts(memoizedFilters);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Có lỗi xảy ra khi tạo sản phẩm";
-        alert(`Lỗi: ${errorMessage}`);
-        console.error("Error creating product:", error);
-      }
-    },
-    [createProduct, fetchProducts, memoizedFilters]
-  );
+  async (productData: any) => {
+    try {
+      const payload = {
+        productName: productData.productName || "",
+        briefDescription: productData.briefDescription || "",
+        fullDescription: productData.fullDescription || "",
+        technicalSpecifications: productData.technicalSpecifications || "",
+        price: parseInt(productData.price, 10) || 0, 
+        imageBase64: productData.imageBase64 || "",
+        categoryID: productData.categoryID ?? 1,  
+      };
+
+      await createProduct(payload);
+      await fetchProducts(memoizedFilters);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tạo sản phẩm";
+      alert(`Lỗi: ${errorMessage}`);
+      console.error("Error creating product:", error);
+    }
+  },
+  [createProduct, fetchProducts, memoizedFilters]
+);
+
 
   const handleUpdateProduct = useCallback(
     async (productData: any) => {
@@ -313,8 +323,9 @@ const Products: React.FC = () => {
                     <div className="product-image">
                       <img
                         src={
-                          getImageDisplaySrc(product.imageBase64) ||
-                          "/placeholder.svg"
+                          product.imageBase64
+                            ? `data:image/png;base64,${product.imageBase64}`
+                            : "/placeholder.svg"
                         }
                         alt={product.productName}
                         className="table-image"
