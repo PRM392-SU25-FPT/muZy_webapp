@@ -215,7 +215,6 @@ export interface OrderResponseDTO {
   userId?: number
   cartId?: number
   paymentMethod: string
-  orderDate: string | Date
   totalAmount: number
   billingAddress: string
   orderDetails?: OrderDetailResponseDTO[]
