@@ -4,7 +4,6 @@ import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 import type { StoreLocationDto } from "../types/dto"
 import StoreLocationModal from "./StoreLocationModal"
-import SimpleMap from "./SimpleMap"
 import { useStoreLocations } from "../hooks/useStoreLocations"
 
 const StoreLocations: React.FC = () => {
@@ -14,35 +13,18 @@ const StoreLocations: React.FC = () => {
   // Modal states
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
   const [editingLocation, setEditingLocation] = useState<StoreLocationDto | undefined>()
-  const [selectedLocation, setSelectedLocation] = useState<StoreLocationDto | null>(null)
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("")
-
-  // Map state
-  const [showMap, setShowMap] = useState(true)
+  const [initialized, setInitialized] = useState(false)
 
   // Load locations only once on component mount
   useEffect(() => {
-    let isMounted = true;
-
-    const loadLocations = async () => {
-      try {
-        await fetchLocations();
-      } catch (error) {
-        console.error("Error loading locations:", error);
-      }
-    };
-
-    if (isMounted) {
-      loadLocations();
+    if (!initialized) {
+      fetchLocations()
+      setInitialized(true)
     }
-
-    return () => {
-      isMounted = false;
-    };
-    // Run only once, no dependency on fetchLocations
-  }, []);
+  }, [fetchLocations, initialized])
 
   const handleCreateLocation = useCallback(
     async (locationData: any) => {
@@ -93,15 +75,6 @@ const StoreLocations: React.FC = () => {
     [deleteLocation, fetchLocations],
   )
 
-  const handleMapClick = useCallback((lat: number, lng: number) => {
-    // This could be used to add a new location by clicking on the map
-    console.log("Map clicked at:", lat, lng)
-  }, [])
-
-  const handleLocationSelect = useCallback((location: StoreLocationDto) => {
-    setSelectedLocation(location)
-  }, [])
-
   // Filter locations based on search term
   const filteredLocations = locations.filter((location) =>
     location.address.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -116,7 +89,7 @@ const StoreLocations: React.FC = () => {
     <div className="page-container">
       <div className="page-header">
         <h1>Quản lý Vị trí Cửa hàng</h1>
-        <p>Quản lý các vị trí cửa hàng trên bản đồ ({totalCount} vị trí)</p>
+        <p>Quản lý các vị trí cửa hàng ({totalCount} vị trí)</p>
       </div>
 
       {error && (
@@ -142,9 +115,9 @@ const StoreLocations: React.FC = () => {
           <span>➕</span>
           Thêm vị trí mới
         </button>
-        <button className="btn-secondary" onClick={() => setShowMap(!showMap)}>
-          <span>{showMap ? "📋" : "🗺️"}</span>
-          {showMap ? "Hiện danh sách" : "Hiện bản đồ"}
+        <button className="btn-secondary" onClick={() => fetchLocations()} disabled={loading}>
+          <span>{loading ? "⏳" : "🔄"}</span>
+          {loading ? "Đang tải..." : "Làm mới"}
         </button>
       </div>
 
@@ -163,23 +136,6 @@ const StoreLocations: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Map View */}
-      {showMap && (
-        <div className="map-section">
-          <div className="map-header">
-            <h2>Bản đồ các cửa hàng</h2>
-            <p>Nhấp vào vị trí để xem thông tin chi tiết</p>
-          </div>
-          <div className="map-container">
-            <SimpleMap
-              locations={filteredLocations}
-              selectedLocation={selectedLocation}
-              onLocationSelect={handleLocationSelect}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Locations Table */}
       <div className="table-container">
@@ -201,10 +157,7 @@ const StoreLocations: React.FC = () => {
             </thead>
             <tbody>
               {filteredLocations.map((location) => (
-                <tr
-                  key={location.locationID}
-                  className={selectedLocation?.locationID === location.locationID ? "selected-row" : ""}
-                >
+                <tr key={location.locationID}>
                   <td>
                     <span className="location-id">#{location.locationID}</span>
                   </td>
@@ -221,13 +174,6 @@ const StoreLocations: React.FC = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button
-                        className="btn-view"
-                        title="Xem trên bản đồ"
-                        onClick={() => handleLocationSelect(location)}
-                      >
-                        🗺️
-                      </button>
                       <button
                         className="btn-edit"
                         title="Chỉnh sửa"
@@ -273,11 +219,11 @@ const StoreLocations: React.FC = () => {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">🗺️</div>
+          <div className="stat-icon">🔍</div>
           <div className="stat-content">
             <h3>Đang hiển thị</h3>
             <p className="stat-number">{filteredLocations.length}</p>
-            <span className="stat-label">Trên bản đồ</span>
+            <span className="stat-label">Kết quả</span>
           </div>
         </div>
       </div>
@@ -288,7 +234,6 @@ const StoreLocations: React.FC = () => {
         onClose={() => setIsLocationModalOpen(false)}
         onSave={editingLocation ? handleUpdateLocation : handleCreateLocation}
         location={editingLocation}
-        onMapClick={handleMapClick}
       />
     </div>
   )

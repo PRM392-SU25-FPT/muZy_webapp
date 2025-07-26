@@ -41,12 +41,9 @@ export const useAuth = () => {
           return
         }
 
-        // Gọi API để xác thực token và lấy thông tin user
         const profile = await profileApi.request("/api/auth/profile", {
           method: "GET",
-          headers: {
-            ...getAuthHeaders(),
-          },
+          headers: getAuthHeaders(),
         })
 
         if (profile) {
@@ -64,7 +61,8 @@ export const useAuth = () => {
     }
 
     initializeAuth()
-  }, [profileApi])
+    // Xóa profileApi khỏi dependency array
+  }, [])
 
   const login = useCallback(async (username: string, password: string): Promise<void> => {
     try {

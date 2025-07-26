@@ -1,155 +1,120 @@
-"use client";
+"use client"
 
-import { useState, useCallback } from "react";
-import { useApi, getAuthHeaders } from "./useApi";
-import type {
-  StoreLocationsApiResponse,
-  StoreLocationApiResponse
-} from "./types";
-import type {
-  StoreLocationDto,
-  StoreLocationCreateRequest,
-  StoreLocationUpdateRequest
-} from "../types/dto";
+import { useState, useCallback } from "react"
+import { useApi, getAuthHeaders } from "./useApi"
+import type { StoreLocationDto, StoreLocationCreateRequest, StoreLocationUpdateRequest } from "../types/dto"
 
 export const useStoreLocations = () => {
-  const [locations, setLocations] = useState<StoreLocationDto[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const [locations, setLocations] = useState<StoreLocationDto[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const locationsApi = useApi<StoreLocationDto[]>()
+  const locationApi = useApi<StoreLocationDto>()
 
-  const locationsApi = useApi<StoreLocationsApiResponse>();
-  const locationApi = useApi<StoreLocationApiResponse>();
-
-  // Fetch all locations
   const fetchLocations = useCallback(async (): Promise<StoreLocationDto[]> => {
     try {
       const response = await locationsApi.request("/api/StoreLocation", {
-        headers: getAuthHeaders()
-      });
+        headers: getAuthHeaders(),
+      })
 
-      const locationList = Array.isArray(response)
-        ? response
-        : response?.items ?? [];
+      if (response) {
+        // API returns array directly according to spec
+        const locationList = Array.isArray(response) ? response : []
+        setLocations(locationList)
+        setTotalCount(locationList.length)
+        return locationList
+      }
 
-      const count = Array.isArray(response)
-        ? locationList.length
-        : response?.totalCount ?? locationList.length;
-
-      setLocations(locationList);
-      setTotalCount(count);
-
-      return locationList;
+      return []
     } catch (error) {
-      console.error("Error fetching store locations:", error);
-      return [];
+      console.error("Error fetching store locations:", error)
+      throw error
     }
-  }, [locationsApi]);
+  }, [locationsApi])
 
-  // Get a single location
   const getLocation = useCallback(
     async (id: number): Promise<StoreLocationDto> => {
       try {
-        return await locationApi.request(`/api/StoreLocation/${id}`, {
-          headers: getAuthHeaders()
-        });
+        const response = await locationApi.request(`/api/StoreLocation/${id}`, {
+          headers: getAuthHeaders(),
+        })
+        return response
       } catch (error) {
-        console.error("Error fetching store location:", error);
-        throw error;
+        console.error("Error fetching store location:", error)
+        throw error
       }
     },
-    [locationApi]
-  );
+    [locationApi],
+  )
 
-  // Create a new location
   const createLocation = useCallback(
-    async (
-      locationData: StoreLocationCreateRequest
-    ): Promise<StoreLocationDto> => {
+    async (locationData: StoreLocationCreateRequest): Promise<StoreLocationDto> => {
       try {
-        const payload = {
-          locationID: 0, // Server will assign ID
+        // Convert to match API spec (LocationDTO)
+        const apiData = {
+          locationID: 0, // Will be assigned by server
           latitude: locationData.latitude,
           longitude: locationData.longitude,
-          address: locationData.address
-        };
+          address: locationData.address,
+        }
 
         const response = await locationApi.request("/api/StoreLocation", {
           method: "POST",
-          body: payload,
-          headers: {
-            ...getAuthHeaders(),
-            "Content-Type": "application/json"
-          }
-        });
+          body: apiData,
+          headers: getAuthHeaders(),
+        })
 
-        setLocations((prev) => [...prev, response]);
-        setTotalCount((prev) => prev + 1);
-
-        return response;
+        return response
       } catch (error) {
-        console.error("Error creating store location:", error);
-        throw error;
+        console.error("Error creating store location:", error)
+        throw error
       }
     },
-    [locationApi]
-  );
+    [locationApi],
+  )
 
-  // Update an existing location
   const updateLocation = useCallback(
-    async (
-      id: number,
-      locationData: StoreLocationUpdateRequest
-    ): Promise<StoreLocationDto> => {
+    async (id: number, locationData: StoreLocationUpdateRequest): Promise<StoreLocationDto> => {
       try {
-        const payload = {
+        // Convert to match API spec (LocationDTO)
+        const apiData = {
           locationID: locationData.locationID,
           latitude: locationData.latitude,
           longitude: locationData.longitude,
-          address: locationData.address
-        };
+          address: locationData.address,
+        }
 
         const response = await locationApi.request(`/api/StoreLocation/${id}`, {
           method: "PUT",
-          body: payload,
-          headers: {
-            ...getAuthHeaders(),
-            "Content-Type": "application/json"
-          }
-        });
+          body: apiData,
+          headers: getAuthHeaders(),
+        })
 
-        // Update local state
-        setLocations((prev) =>
-          prev.map((loc) => (loc.locationID === id ? response : loc))
-        );
-
-        return response;
+        // Return the updated data
+        return response || apiData
       } catch (error) {
-        console.error("Error updating store location:", error);
-        throw error;
+        console.error("Error updating store location:", error)
+        throw error
       }
     },
-    [locationApi]
-  );
+    [locationApi],
+  )
 
-  // Delete a location
   const deleteLocation = useCallback(
     async (id: number): Promise<boolean> => {
       try {
         await locationApi.request(`/api/StoreLocation/${id}`, {
           method: "DELETE",
-          headers: getAuthHeaders()
-        });
+          headers: getAuthHeaders(),
+        })
 
-        setLocations((prev) => prev.filter((loc) => loc.locationID !== id));
-        setTotalCount((prev) => Math.max(0, prev - 1));
-
-        return true;
+        return true
       } catch (error) {
-        console.error("Error deleting store location:", error);
-        return false;
+        console.error("Error deleting store location:", error)
+        throw error
       }
     },
-    [locationApi]
-  );
+    [locationApi],
+  )
 
   return {
     locations,
@@ -160,6 +125,6 @@ export const useStoreLocations = () => {
     getLocation,
     createLocation,
     updateLocation,
-    deleteLocation
-  };
-};
+    deleteLocation,
+  }
+}

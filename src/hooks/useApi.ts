@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useState } from "react"
 import { type ApiOptions, type ApiResponse } from "./types"
 
-const BASE_URL = "https://prm-web-app-570562005195.us-central1.run.app"
+const BASE_URL = "https://prm-web-app-980191490938.us-central1.run.app"
 
 export const useApi = <T>() => {
   const [state, setState] = useState<ApiResponse<T>>({
@@ -10,18 +10,7 @@ export const useApi = <T>() => {
     loading: false,
   })
 
-  const abortControllerRef = useRef<AbortController | null>(null)
-
   const request = useCallback(async (endpoint: string, options: ApiOptions = {}) => {
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
-    // Create new abort controller for this request
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
-
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
@@ -33,7 +22,6 @@ export const useApi = <T>() => {
           "Content-Type": "application/json",
           ...headers,
         },
-        signal: abortController.signal,
       }
 
       if (body && method !== "GET") {
@@ -41,11 +29,6 @@ export const useApi = <T>() => {
       }
 
       const response = await fetch(`${BASE_URL}${endpoint}`, config)
-      
-      // Check if request was aborted
-      if (abortController.signal.aborted) {
-        return
-      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -61,11 +44,6 @@ export const useApi = <T>() => {
 
       return data
     } catch (error) {
-      // Don't update state if request was aborted
-      if (error instanceof Error && error.name === 'AbortError') {
-        return
-      }
-
       const errorMessage = error instanceof Error ? error.message : "An error occurred"
       setState({
         data: null,
@@ -82,7 +60,7 @@ export const useApi = <T>() => {
   }
 }
 
-// Auth token management
+// Auth token helpers
 export const getAuthToken = (): string | null => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("token")
